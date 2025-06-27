@@ -66,7 +66,7 @@ The HGIC and MINT algorithms are based on two of our papers which you can cite a
 ```bibtex
 @article{karlsson2023detecting,
   title={Detecting hidden confounding in observational data using multiple environments},
-  author={Karlsson, Rickard and Krijthe, Jesse},
+  author={Karlsson, Rickard and Krijthe, Jesse H},
   journal={Advances in Neural Information Processing Systems},
   volume={36},
   pages={44280--44309},
@@ -75,12 +75,18 @@ The HGIC and MINT algorithms are based on two of our papers which you can cite a
 
 @inproceedings{karlsson2025falsification,
   title={Falsification of Unconfoundedness by Testing Independence of Causal Mechanisms},
-  author={Karlsson, Rickard KA and Krijthe, Jesse H},
+  author={Karlsson, Rickard and Krijthe, Jesse H},
   booktitle={International Conference on Machine Learning},
   organization={PMLR}
   year={2025},
 }
 ```
+
+---
+
+## 🐛 Issues
+
+If you encounter any bugs, unexpected behavior, or have questions about using the package, please don’t hesitate to [open an issue](https://github.com/RickardKarl/causal-falsify/issues).  
 
 ---
 
