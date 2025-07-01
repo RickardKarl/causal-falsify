@@ -16,6 +16,15 @@ class TransportabilityTest(FalsificationAlgorithm):
         max_sample_size: int = np.inf,
     ) -> None:
         """
+
+        Transportability-based test akin to the benchmarking framework in
+        "Using Trial and Observational Data to Assess Effectiveness:
+        Trial Emulation, Transportability, Benchmarking, and Joint Analysis"
+        Dahabreh et al., 2024
+
+        Joint test for whether we have transportability and unconfoundedness across sources.
+        A rejection will falsify both conditions jointly.
+
         Args:
             cond_indep_test (str): CI test to use: "kcit_rbf" or "fisherz".
             max_sample_size (int): Max samples for testing to control runtime.

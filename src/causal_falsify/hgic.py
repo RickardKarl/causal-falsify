@@ -24,6 +24,15 @@ class HGIC(FalsificationAlgorithm):
         method_pval_combination: str = "tippett",
     ) -> None:
         """
+
+        Hierarchical Graphical Independence Constraint (HGIC) algorithm from
+        "Detecting Hidden Confounding in Observational Data Using Multiple Environments"
+        Karlsson and Krijthe, NeurIPS 2023
+        (https://arxiv.org/abs/2205.13935)
+
+        Joint test for whether we have independence between causal mechanisms and unconfoundedness across sources.
+        A rejection will falsify both conditions jointly.
+
         Args:
             cond_indep_test (str): CI test to use: "kcit_rbf" or "fisherz".
             max_tests (int): Maximum number of pairwise tests to perform.
