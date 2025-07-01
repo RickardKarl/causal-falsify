@@ -1,6 +1,5 @@
 from typing import Optional
 import numpy as np
-from numpy.linalg import LinAlgError
 from causallearn.utils.cit import CIT
 
 """
@@ -55,6 +54,7 @@ def kcit_rbf(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> Optional[float]:
             method="kci",
             kernelX="Gaussian",
             kernelY="Gaussian",
+            kernelZ="Gaussian",
             approx=False,
             use_gp=True,
             est_width="median",

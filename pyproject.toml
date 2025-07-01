@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "causal-falsify"
-version = "0.1.1"
+version = "0.1.2"
 description = "Algorithms to falsify unconfoundedness assumption when having access to multi-source observational data."
 authors = [{ name = "Rickard Karlsson", email = "r.k.a.karlsson@tudelft.nl" }]
 readme = "README.md"

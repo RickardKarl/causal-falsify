@@ -28,6 +28,15 @@ class MINT(FalsificationAlgorithm):
         n_bootstraps: int = 1000,
     ) -> None:
         """
+
+        Mechanism INdependent Test (MINT) algorithm from
+        "Falsification of Unconfoundedness by Testing Independence of Causal Mechanisms"
+        Karlsson and Krijthe, ICML 2025
+        (https://arxiv.org/abs/2502.06231)
+
+        Joint test for whether we have independence between causal mechanisms and unconfoundedness across sources.
+        A rejection will falsify both conditions jointly.
+
         Args:
             feature_representation (str): Feature representation to use ("linear" or "poly").
             feature_representation_params (dict): Parameters for the feature representation.
