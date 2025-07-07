@@ -27,10 +27,10 @@ pip install causal-falsify
 We have implemented three falsification algorithms, which can be used complementarily:
 
 - **Hierarchical Graphical Independence Constraint (HGIC) Test**:  
-  This test jointly assesses whether transportability and unconfoundedness hold across sources. A rejection indicates that at least one of these conditions fails. The HGIC test is derived from specific d-separation using constraint-based causal discovery in a hierarchical causal graphical model.
+  This test jointly assesses whether unconfoundedness and independence of causal mechanisms hold across sources. A rejection indicates that at least one of these conditions fails. The HGIC test is derived from specific d-separation using constraint-based causal discovery in a hierarchical causal graphical model.
 
 - **Mechanism Independence Test (MINT)**:  
-  Similar to the HGIC test, MINT jointly tests for transportability and unconfoundedness across sources. However, it makes a parametric linearity assumption, which greatly improves sample efficiency but may lead to false positives if the linear model is severely misspecified.
+  Similar to the HGIC test, MINT jointly tests for unconfoundedness and independence of causal mechanisms across sources. However, it makes a parametric linearity assumption, which greatly improves sample efficiency but may lead to false positives if the linear model is severely misspecified.
 
 - **Transportability-Based Test**:  
   This alternative approach jointly tests for transportability and unconfoundedness across sources. A rejection here likewise indicates that at least one of these conditions does not hold.
