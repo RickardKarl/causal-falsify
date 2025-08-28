@@ -28,11 +28,16 @@ def test_create_polynomial_representation_basic():
     # basic polynomial expansion without sklearn
     poly = create_polynomial_representation(X, degree=2, use_sklearn=False)
     assert poly.shape == (2, 4)  # 2 features * degree 2
-    # with sklearn interaction_only
+
     poly2 = create_polynomial_representation(
         X, degree=2, use_sklearn=True, interaction_only=True
     )
-    assert poly2.shape[0] == X.shape[0]
+    assert poly2.shape == (2, 3)
+
+    poly3 = create_polynomial_representation(
+        X, degree=2, use_sklearn=True, interaction_only=False
+    )
+    assert poly3.shape == (2, 5)
 
 
 def test_validate_matrix_good_and_bad():
@@ -86,6 +91,7 @@ def test_fit_logistic_regression_basic():
     T = jnp.array([1, -1, 1, -1])
     params = fit_logistic_regression(X, T, alpha=0.01)
     assert params.shape == (X.shape[1],)
+    assert all(isinstance(float(val), float) for val in params)
 
 
 def test_fit_linear_regression_basic():
@@ -94,6 +100,7 @@ def test_fit_linear_regression_basic():
     Y = jnp.array([1, 2, 3, 4])
     params = fit_linear_regression(X, Y)
     assert params.shape == (X.shape[1],)
+    assert all(isinstance(float(val), float) for val in params)
 
 
 def test_cross_val_mse_basic():

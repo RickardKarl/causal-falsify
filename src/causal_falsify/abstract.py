@@ -20,16 +20,24 @@ class FalsificationAlgorithm(ABC):
         source_var: str,
     ) -> float:
         """
-        Run the falsification test to test null hypothesis of no unmeasured confounding in multi-source observational data.
+        Run the falsification test to test the null hypothesis of no unmeasured confounding in multi-source observational data.
 
-        Args:
-            data (pd.DataFrame): Input dataset.
-            covariate_vars (List[str]): List of covariate column names.
-            treatment_var (str): Treatment variable column name.
-            outcome_var (str): Outcome variable column name.
-            source_var (str): Source/environment indicator column_
-        
-        Returns:
-            float: p-value from the test.
+        Parameters
+        ----------
+        data : pd.DataFrame
+            Input dataset.
+        covariate_vars : List[str]
+            List of covariate column names.
+        treatment_var : str
+            Treatment variable column name.
+        outcome_var : str
+            Outcome variable column name.
+        source_var : str
+            Source/environment indicator column.
+
+        Returns
+        -------
+        float
+            p-value from the test.
         """
         pass
