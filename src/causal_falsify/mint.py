@@ -179,7 +179,7 @@ class MINT(FalsificationAlgorithm):
 
     def get_diagnostics(self) -> Dict:
         """
-        TODO Returns diagnostics from the last test run.
+        Returns quality of fit for nuisance models per environment from the most recent test() call.
 
         Returns:
             dict: model_fit_diagnostics
@@ -190,6 +190,11 @@ class MINT(FalsificationAlgorithm):
         if self.feature_representation == "linear":
             return lambda x: x
         elif self.feature_representation == "poly":
+            if "degree" not in self.feature_representation_params:
+                print(
+                    "Warning: 'degree' not provided in feature_representation_params. Using default value of 3."
+                )
+                self.feature_representation_params["degree"] = 3
             return lambda x: create_polynomial_representation(
                 x, **self.feature_representation_params
             )
