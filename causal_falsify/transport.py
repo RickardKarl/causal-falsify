@@ -145,6 +145,7 @@ class TransportabilityTest(FalsificationAlgorithm):
         - If the total number of selected samples exceeds `self.max_sample_size_test`,
         a random subset of the selected samples is drawn to enforce the limit.
         """
+
         unique_sources, counts = np.unique(source, return_counts=True)
         proportions = counts / counts.sum()
 

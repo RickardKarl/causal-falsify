@@ -1,6 +1,7 @@
 # causal-falsify
 
-[![PyPI](https://img.shields.io/pypi/v/causal-falsify.svg)](https://pypi.org/project/causal-falsify/)
+[![PyPI](https://img.shields.io/pypi/v/causal-falsify.svg)](https://pepy.tech/projects/causal-falsify)
+[![Downloads](https://pepy.tech/projects/causal-falsify)](https://pepy.tech/project/tabpfn)
 [![License](https://img.shields.io/pypi/l/causal-falsify)](./LICENSE)
 
 *causal-falsify: A Python library with algorithms for falsifying unconfoundedness assumption in a composite dataset from multiple sources.*
@@ -12,13 +13,15 @@ This library implements algorithms proposed in our two papers based on testing i
 
 ---
 
-## 📦 Installation
+## 📦 Installation & Documentation
 
 Install from [PyPI](https://pypi.org/project/causal-falsify/):
 
 ```bash
 pip install causal-falsify
 ```
+
+Documentation can be found at ...
 
 ---
 
@@ -40,7 +43,7 @@ We have implemented three falsification algorithms, which can be used complement
 An example with the MINT algorithm.
 
 ```python
-from causal_falsify.mint import MINT
+from causal_falsify.algorithms.mint import MINT
 from causal_falsify.utils.simulate_data import simulate_data
 
 # Create a simulated pandas DataFrame containing where unmeasured confounding is present:

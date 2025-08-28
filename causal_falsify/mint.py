@@ -212,7 +212,7 @@ class MINT(FalsificationAlgorithm):
             ValueError: If invalid feature_representation or feature_representation_params are provided
 
         Returns:
-        -------
+        --------
         Callable function
             Feature representation
         """
