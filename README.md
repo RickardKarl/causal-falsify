@@ -1,7 +1,7 @@
 # causal-falsify
 
 [![PyPI](https://img.shields.io/pypi/v/causal-falsify.svg)](https://pepy.tech/projects/causal-falsify)
-[![Downloads](https://pepy.tech/projects/causal-falsify)](https://pepy.tech/project/tabpfn)
+[![Downloads](https://pepy.tech/projects/causal-falsify)](https://pepy.tech/project/causal-falsify)
 [![License](https://img.shields.io/pypi/l/causal-falsify)](./LICENSE)
 
 *causal-falsify: A Python library with algorithms for falsifying unconfoundedness assumption in a composite dataset from multiple sources.*
