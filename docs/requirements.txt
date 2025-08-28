@@ -5,6 +5,5 @@ sphinx>=8.0
 sphinx_rtd_theme
 
 # Extensions used in conf.py
-sphinx-autodoc-typehints
-sphinx-autosummary
-numpydoc  # for NumPy-style docstrings
+sphinx-autodoc-typehints<3.1
+
