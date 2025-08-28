@@ -25,8 +25,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev]  # or your requirements.txt, adjust to your project
+          pip install -e .[dev] 
 
       - name: Run tests with pytest
         run: |
-          pytest
+          pytest --cov=causal_falsify --cov-fail-under=80 tests/
