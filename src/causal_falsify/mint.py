@@ -28,7 +28,6 @@ class MINT(FalsificationAlgorithm):
         n_bootstraps: int = 1000,
     ) -> None:
         """
-
         Mechanism INdependent Test (MINT) algorithm from
         "Falsification of Unconfoundedness by Testing Independence of Causal Mechanisms"
         Karlsson and Krijthe, ICML 2025
@@ -37,13 +36,20 @@ class MINT(FalsificationAlgorithm):
         Joint test for whether we have independence between causal mechanisms and unconfoundedness across sources.
         A rejection will falsify both conditions jointly.
 
-        Args:
-            feature_representation (str): Feature representation to use ("linear" or "poly").
-            feature_representation_params (dict): Parameters for the feature representation.
-            binary_treatment (bool): Whether the treatment is binary (currently not implemented).
-            min_samples_per_env (int): Minimum number of samples required per environment.
-            independence_test_args (dict): Arguments for the independence test.
-            n_bootstraps (int): Number of bootstrap iterations. If None, no bootstrapping is used.
+        Parameters
+        ----------
+        feature_representation : str, optional
+            Feature representation to use ("linear" or "poly").
+        feature_representation_params : dict, optional
+            Parameters for the feature representation.
+        binary_treatment : bool, optional
+            Whether the treatment is binary (currently not implemented).
+        min_samples_per_env : int, optional
+            Minimum number of samples required per environment.
+        independence_test_args : dict, optional
+            Arguments for the independence test.
+        n_bootstraps : int, optional
+            Number of bootstrap iterations. If None, no bootstrapping is used, it is however strongly recommended to use bootstrap.
         """
         self.feature_representation = feature_representation
         self.feature_representation_params = feature_representation_params
@@ -66,15 +72,23 @@ class MINT(FalsificationAlgorithm):
         """
         Perform falsification test for joint test of unconfoundedness and independence of causal mechanisms.
 
-        Args:
-            data (dict): Dictionary mapping environment name to pd.DataFrame.
-            covariate_vars (list): List of covariate column names.
-            treatment_var (str): Name of treatment column.
-            outcome_var (str): Name of outcome column.
-            source_var (str): Name of source/environment column.
+        Parameters
+        ----------
+        data : pandas.DataFrame
+            DataFrame containing all data from all environments.
+        covariate_vars : list of str
+            List of covariate column names.
+        treatment_var : str
+            Name of the treatment column.
+        outcome_var : str
+            Name of the outcome column.
+        source_var : str
+            Name of the source/environment column.
 
-        Returns:
-            p-value
+        Returns
+        -------
+        float
+            p-value from the independence test; low p-value implies unmeasured confounding may be present.
         """
 
         # Validate required columns
@@ -170,6 +184,7 @@ class MINT(FalsificationAlgorithm):
                 resampled_coef_treatment_mech,
             )
         else:
+
             pval = self.run_independence_test(coef_outcome_mech, coef_treatment_mech)
 
         # save diagnostics from this run
@@ -181,12 +196,26 @@ class MINT(FalsificationAlgorithm):
         """
         Returns quality of fit for nuisance models per environment from the most recent test() call.
 
-        Returns:
-            dict: model_fit_diagnostics
+        Returns
+        -------
+        dict
+            Diagnostics for model fit, including source labels and mean squared errors for outcome and treatment models.
         """
         return self._last_model_fit_diagnostics
 
     def get_feature_representation(self):
+        """
+        Returns function that outputs feature representation
+
+        Raises:
+        -------
+            ValueError: If invalid feature_representation or feature_representation_params are provided
+
+        Returns:
+        -------
+        Callable function
+            Feature representation
+        """
         if self.feature_representation == "linear":
             return lambda x: x
         elif self.feature_representation == "poly":
@@ -204,11 +233,29 @@ class MINT(FalsificationAlgorithm):
             )
 
     def run_independence_test(self, data_x, data_y):
+        """
+        Runs independence test between data_x and data_y
+
+
+        Returns:
+        -------
+        float
+            p-value from test
+        """
+
         return permutation_independence_test(data_x=data_x, data_y=data_y)
 
     def run_bootstrapped_independence_test(
         self, data_x, data_y, resampled_data_x, resampled_data_y
     ):
+        """
+        Runs bootstrapped independence test between data_x and data_y
+
+        Returns:
+        -------
+        float
+            p-value from test
+        """
         return bootstrapped_permutation_independence_test(
             data_x=data_x,
             data_y=data_y,

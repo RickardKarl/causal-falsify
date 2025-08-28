@@ -14,27 +14,44 @@ class TransportabilityTest(FalsificationAlgorithm):
         self,
         cond_indep_test: str = "kcit_rbf",
         max_sample_size: int = np.inf,
+        seed: int | None = None,
     ) -> None:
         """
+        Transportability-based test.
 
-        Transportability-based test akin to the benchmarking framework in
-        "Using Trial and Observational Data to Assess Effectiveness:
-        Trial Emulation, Transportability, Benchmarking, and Joint Analysis"
-        Dahabreh et al., 2024
+        Inspired by the benchmarking framework in:
 
-        Joint test for whether we have transportability and unconfoundedness across sources.
-        A rejection will falsify both conditions jointly.
+            Dahabreh et al., 2024. "Using Trial and Observational Data to Assess Effectiveness:
+            Trial Emulation, Transportability, Benchmarking, and Joint Analysis"
 
-        Args:
-            cond_indep_test (str): CI test to use: "kcit_rbf" or "fisherz".
-            max_sample_size (int): Max samples for testing to control runtime.
+        Performs a joint test for transportability and unconfoundedness across sources.
+        A rejection indicates that both conditions are likely violated.
+
+        Parameters
+        ----------
+        cond_indep_test : str
+            Conditional independence test to use. Options are:
+            - 'kcit_rbf': Kernel-based conditional independence test with RBF kernel.
+            - 'fisherz': Fisher z-transform test for linear conditional independence.
+        max_sample_size : int, optional
+            Maximum number of samples to use during testing. Helps control runtime for
+            large datasets. Defaults to None (use all samples).
+        seed : int, optional
+            Used when subsampling data (necessary if max_sample_size is smaller than total dataset size)
+
+        Raises
+        ------
+        ValueError
+            If `cond_indep_test` is not one of the supported options.
         """
+
         super().__init__()
         if max_sample_size <= 0:
             raise ValueError("max_sample_size must be larger than zero")
 
         self.cond_indep_test = cond_indep_test
         self.max_sample_size_test = max_sample_size
+        self.rng = np.random.default_rng(seed)
 
     def test(
         self,
@@ -55,7 +72,7 @@ class TransportabilityTest(FalsificationAlgorithm):
             source_var (str): Source/environment indicator column name.
 
         Returns:
-            float: p-value of the conditional independence test.
+            float: p-value of the test; low p-value implies unmeasured confounding may be present.
         """
         # Validate required columns
         required_cols = set(covariate_vars + [treatment_var, outcome_var, source_var])
@@ -89,9 +106,44 @@ class TransportabilityTest(FalsificationAlgorithm):
 
         return pval
 
-    def subsample_data(self, outcome, source, covariates, treatment):
+    def subsample_data(
+        self,
+        outcome: np.ndarray,
+        source: np.ndarray,
+        covariates: np.ndarray,
+        treatment: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
-        Subsample data to limit size, preserving source distribution proportions.
+        Subsample data to limit the number of samples while preserving the source distribution.
+
+        Parameters
+        ----------
+        outcome : np.ndarray of shape (n_samples, 1)
+            Outcome variable for each sample.
+        source : np.ndarray of shape (n_samples, 1)
+            Source indicator for each sample.
+        covariates : np.ndarray of shape (n_samples, n_covariates)
+            Observed covariates for each sample.
+        treatment : np.ndarray of shape (n_samples, 1)
+            Treatment assignment for each sample.
+
+        Returns
+        -------
+        outcome_sub : np.ndarray of shape (n_subsamples, 1)
+            Subsampled outcomes.
+        source_sub : np.ndarray of shape (n_subsamples, 1)
+            Subsampled source indicators.
+        covariates_sub : np.ndarray of shape (n_subsamples, n_covariates)
+            Subsampled covariates.
+        treatment_sub : np.ndarray of shape (n_subsamples, 1)
+            Subsampled treatment assignments.
+
+        Notes
+        -----
+        - The method ensures that each source is represented approximately
+        proportionally to its frequency in the original data.
+        - If the total number of selected samples exceeds `self.max_sample_size_test`,
+        a random subset of the selected samples is drawn to enforce the limit.
         """
         unique_sources, counts = np.unique(source, return_counts=True)
         proportions = counts / counts.sum()
@@ -103,11 +155,11 @@ class TransportabilityTest(FalsificationAlgorithm):
                 len(src_indices), int(np.round(proportion * self.max_sample_size_test))
             )
             sampled_indices.extend(
-                np.random.choice(src_indices, n_samples, replace=False)
+                self.rng.choice(src_indices, n_samples, replace=False)
             )
 
         if len(sampled_indices) > self.max_sample_size_test:
-            sampled_indices = np.random.choice(
+            sampled_indices = self.rng.choice(
                 sampled_indices, self.max_sample_size_test, replace=False
             )
 

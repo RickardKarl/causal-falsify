@@ -24,20 +24,26 @@ class HGIC(FalsificationAlgorithm):
         method_pval_combination: str = "tippett",
     ) -> None:
         """
+        Hierarchical Graphical Independence Constraint (HGIC) algorithm.
 
-        Hierarchical Graphical Independence Constraint (HGIC) algorithm from
-        "Detecting Hidden Confounding in Observational Data Using Multiple Environments"
-        Karlsson and Krijthe, NeurIPS 2023
-        (https://arxiv.org/abs/2205.13935)
+        Implements the method from:
+            "Detecting Hidden Confounding in Observational Data Using Multiple Environments"
+            Karlsson and Krijthe, NeurIPS 2023
+            (https://arxiv.org/abs/2205.13935)
 
-        Joint test for whether we have independence between causal mechanisms and unconfoundedness across sources.
-        A rejection will falsify both conditions jointly.
+        Jointly tests for independence between causal mechanisms and unconfoundedness across sources.
+        A rejection falsifies both conditions jointly.
 
-        Args:
-            cond_indep_test (str): CI test to use: "kcit_rbf" or "fisherz".
-            max_tests (int): Maximum number of pairwise tests to perform.
-            min_test_sample_size (int): Minimum sources per test.
-            method_pval_combination (str): Method to combine p-values ("tippett", "fisher" or "stouffer").
+        Parameters
+        ----------
+        cond_indep_test : str, default="kcit_rbf"
+            Conditional independence test to use. Options: "kcit_rbf" or "fisherz".
+        max_tests : int, default=-1
+            Maximum number of pairwise tests to perform. Use -1 for unlimited.
+        min_test_sample_size : int, default=25
+            Minimum number of sources per test.
+        method_pval_combination : str, default="tippett"
+            Method to combine p-values. Options: "tippett", "fisher", or "stouffer".
         """
         super().__init__()
 
@@ -61,15 +67,23 @@ class HGIC(FalsificationAlgorithm):
         """
         Perform falsification test for joint test of unconfoundedness and independence of causal mechanisms.
 
-        Args:
-            data (pd.DataFrame): DataFrame containing all required columns.
-            covariate_vars (List[str]): Covariate column names to condition on.
-            treatment_var (str): Treatment column name.
-            outcome_var (str): Outcome column name.
-            source_var (str): Source/environment indicator column name.
+        Parameters
+        ----------
+        data : pd.DataFrame
+            DataFrame containing all required columns.
+        covariate_vars : List[str]
+            Covariate column names to condition on.
+        treatment_var : str
+            Treatment column name.
+        outcome_var : str
+            Outcome column name.
+        source_var : str
+            Source/environment indicator column name.
 
-        Returns:
-            float: p-value of the conditional independence test.
+        Returns
+        -------
+        float
+            p-value of the falsification test; low p-value implies unmeasured confounding may be present.
         """
         # Validate required columns
         required_cols = set(covariate_vars + [treatment_var, outcome_var, source_var])
@@ -172,14 +186,25 @@ class HGIC(FalsificationAlgorithm):
         """
         Construct a pairwise sample DataFrame for statistical testing.
 
-        Args:
-            data (Dict[str, pd.DataFrame]): Environment data.
-            sources (List[str]): List of source keys to sample from.
-            covariates (List[str]): List of observed covariates.
-            index (int): Starting index for sampling.
+        Parameters
+        ----------
+        data : Dict[str, pd.DataFrame]
+            Dictionary mapping source/environment labels to their respective DataFrames.
+        covariates : List[str]
+            List of observed covariate column names.
+        treatment_var : str
+            Name of the treatment variable column.
+        outcome_var : str
+            Name of the outcome variable column.
+        sources : List[str]
+            List of source/environment labels to sample from.
+        index : int
+            Starting index for sampling within each source.
 
-        Returns:
-            pd.DataFrame: Constructed sample DataFrame.
+        Returns
+        -------
+        pd.DataFrame
+            Constructed sample DataFrame containing paired samples for testing.
         """
         get = lambda source, col: data[source][col].values
 

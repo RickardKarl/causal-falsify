@@ -12,7 +12,21 @@ Multiple implementations of conditional independence tests to test null hypothes
 
 def _validate_inputs(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> None:
     """
-    Validate input shapes for CI tests.
+    Validate the shapes of input arrays for conditional independence (CI) tests.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Input array representing variable X. Must be a 2D array with shape (n_samples, 1).
+    y : np.ndarray
+        Input array representing variable Y. Must be a 2D array with shape (n_samples, 1).
+    z : np.ndarray
+        Input array representing conditioning variables Z. Must be a 2D array with shape (n_samples, n_features).
+
+    Raises
+    ------
+    ValueError
+        If any of the input arrays do not have the required shape or if the number of samples (rows) do not match.
     """
     if not (x.ndim == 2 and x.shape[1] == 1):
         raise ValueError(
@@ -36,12 +50,18 @@ def kcit_rbf(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> Optional[float]:
     """
     Kernel-based Conditional Independence Test (KCIT) with RBF kernels.
 
-    Args:
-        x: Array of shape (n_samples, 1).
-        y: Array of shape (n_samples, 1).
-        z: Array of shape (n_samples, n_covariates).
+    Parameters
+    ----------
+    x : np.ndarray
+        Input array representing variable X. Must be a 2D array with shape (n_samples, 1).
+    y : np.ndarray
+        Input array representing variable Y. Must be a 2D array with shape (n_samples, 1).
+    z : np.ndarray
+        Input array representing conditioning variables Z. Must be a 2D array with shape (n_samples, n_covariates).
 
-    Returns:
+    Returns
+    -------
+    Optional[float]
         p-value of the test if successful; None if an error occurred.
     """
     _validate_inputs(x, y, z)
@@ -73,12 +93,18 @@ def fisherz(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> Optional[float]:
     """
     Fisher's Z Conditional Independence Test.
 
-    Args:
-        x: Array of shape (n_samples, 1).
-        y: Array of shape (n_samples, 1).
-        z: Array of shape (n_samples, n_covariates).
+    Parameters
+    ----------
+    x : np.ndarray
+        Input array representing variable X. Must be a 2D array with shape (n_samples, 1).
+    y : np.ndarray
+        Input array representing variable Y. Must be a 2D array with shape (n_samples, 1).
+    z : np.ndarray
+        Input array representing conditioning variables Z. Must be a 2D array with shape (n_samples, n_covariates).
 
-    Returns:
+    Returns
+    -------
+    Optional[float]
         p-value of the test if successful; None if an error occurred.
     """
     _validate_inputs(x, y, z)
