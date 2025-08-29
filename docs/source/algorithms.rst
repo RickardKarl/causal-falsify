@@ -1,23 +1,36 @@
 Algorithms
-----------
+==========
 
-We have (so far) implemented three falsification algorithms.
+We have implemented three falsification algorithms so far, whose documentation is found :doc:`here<api/causal_falsify.algorithms>`.
 
-- **Hierarchical Graphical Independence Constraint (HGIC) Test**  
-  Jointly assesses unconfoundedness and independence of causal mechanisms across environments.  
+Hierarchical Graphical Independence Constraint (HGIC) Test
+-----------------------------------------------------------
 
-- **Mechanism Independence Test (MINT)**  
-  Parametric version with a linearity assumption for better sample efficiency.  
-  Implementation based on independence of causal mechanisms across environments.
+This algorithm jointly assesses unconfoundedness and the independence of causal mechanisms across environments, as introduced in  
+*Detecting Hidden Confounding in Observational Data Using Multiple Environments* by Karlsson and Krijthe,  
+`NeurIPS 2023 (PDF) <https://arxiv.org/abs/2205.13935>`_. 
 
-- **Transportability-Based Test**  
-  Tests joint transportability and unconfoundedness across environments. **Important:** Transportability holds when there is no edge between environment and outcome in the causal graph, meaning that that this test is not advised if one suspect that edge to be present in your data.
+The test can indicate whether either the causal mechanisms are not independently changing across environments, or if unconfoundedness across all environments does not hold. The method is implemented by verifying a specific d-separation through conditional independence testing.  
 
-These algorithms are explained more in-depth in two papers, we encourage you to read these papers to learn more:
+.. The implementation can be found in the :doc:`HGIC implementation <api/causal_falsify.algorithms.hgic>`.
 
-1. *Detecting Hidden Confounding in Observational Data Using Multiple Environments* – Karlsson and Krijthe,  
-   `NeurIPS 2023 (PDF) <https://arxiv.org/abs/2205.13935>`_
+Mechanism Independence Test (MINT)
+----------------------------------
 
-2. *Falsification of Unconfoundedness by Testing Independence of Causal Mechanisms* – Karlsson and Krijthe,   
-   `ICML 2025 (PDF) <https://arxiv.org/abs/2502.06231>`_
+Similar to HGIC, MINT also jointly assesses unconfoundedness and independence of causal mechanisms across environments.
+
+However, it follows a two-stage procedure: first fitting parametric nuisance models for the causal mechanisms, and then testing independence between them across environments. While this introduces a functional assumption, it often provides better sample efficiency.  
+The full method is described in *Falsification of Unconfoundedness by Testing Independence of Causal Mechanisms* – Karlsson and Krijthe,  
+`ICML 2025 (PDF) <https://arxiv.org/abs/2502.06231>`_.  
+
+.. The implementation can be found in the :doc:`MINT implementation <api/causal_falsify.algorithms.mint>`.
+
+Transportability-Based Test
+---------------------------
+
+This algorithm tests joint transportability and unconfoundedness across environments, which is also discussed in-depth in the references above. It can indicate whether either transportability between environments fails, or if unconfoundedness across all environments does not hold.
+
+.. The implementation can be found in the :doc:`TransportabilityTest implementation <api/causal_falsify.algorithms.transport>`.
+
+**Important:** Transportability assumes there is no edge between the environment and the outcome in the causal graph. Therefore, this test is **not recommended** if such an edge is suspected in your data.
 
