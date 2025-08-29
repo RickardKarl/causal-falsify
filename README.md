@@ -1,6 +1,7 @@
 # causal-falsify
 
 [![PyPI](https://img.shields.io/pypi/v/causal-falsify.svg)](https://pepy.tech/projects/causal-falsify)
+[![Documentation](https://img.shields.io/readthedocs/causal-falsify)](https://causal-falsify.readthedocs.io/en/latest/)
 [![Downloads](https://pepy.tech/badge/causal-falsify)](https://pepy.tech/project/causal-falsify)
 [![License](https://img.shields.io/pypi/l/causal-falsify)](./LICENSE)
 
@@ -21,7 +22,7 @@ Install from [PyPI](https://pypi.org/project/causal-falsify/):
 pip install causal-falsify
 ```
 
-Documentation can be found at ...
+Documentation can be found at [causal-falsify.readthedocs.io](https://causal-falsify.readthedocs.io/en/latest/)
 
 ---
 
