@@ -6,7 +6,7 @@ import pandas as pd
 from scipy.stats import combine_pvalues
 from sklearn.exceptions import ConvergenceWarning
 
-from causal_falsify.abstract import FalsificationAlgorithm
+from causal_falsify.algorithms.abstract import AbstractFalsificationAlgorithm
 from causal_falsify.utils.cond_indep import (
     kcit_rbf,
     fisherz,
@@ -15,7 +15,7 @@ from causal_falsify.utils.cond_indep import (
 warnings.simplefilter("ignore", ConvergenceWarning)
 
 
-class HGIC(FalsificationAlgorithm):
+class HGIC(AbstractFalsificationAlgorithm):
     def __init__(
         self,
         cond_indep_test: str = "kcit_rbf",

@@ -6,7 +6,7 @@ import jax.numpy as jnp
 
 config.update("jax_enable_x64", True)
 
-from causal_falsify.abstract import FalsificationAlgorithm
+from causal_falsify.algorithms.abstract import AbstractFalsificationAlgorithm
 from causal_falsify.utils.mint import (
     create_polynomial_representation,
     bootstrap_model_fitting_jax,
@@ -17,7 +17,7 @@ from causal_falsify.utils.mint import (
 )
 
 
-class MINT(FalsificationAlgorithm):
+class MINT(AbstractFalsificationAlgorithm):
     def __init__(
         self,
         feature_representation: str = "linear",
@@ -212,7 +212,7 @@ class MINT(FalsificationAlgorithm):
             ValueError: If invalid feature_representation or feature_representation_params are provided
 
         Returns:
-        -------
+        --------
         Callable function
             Feature representation
         """

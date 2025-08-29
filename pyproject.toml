@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "causal-falsify"
-version = "0.1.2"
+version = "0.2.0"
 description = "Algorithms to falsify unconfoundedness assumption when having access to multi-source observational data."
 authors = [{ name = "Rickard Karlsson", email = "r.k.a.karlsson@tudelft.nl" }]
 readme = "README.md"
@@ -35,7 +35,7 @@ dev = [
 "Homepage" = "https://github.com/RickardKarl/causal-falsify"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = "."}
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]

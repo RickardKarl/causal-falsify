@@ -1,4 +1,4 @@
-from causal_falsify.abstract import FalsificationAlgorithm
+from causal_falsify.algorithms.abstract import AbstractFalsificationAlgorithm
 import numpy as np
 import pandas as pd
 from typing import List
@@ -9,7 +9,7 @@ from causal_falsify.utils.cond_indep import (
 )
 
 
-class TransportabilityTest(FalsificationAlgorithm):
+class TransportabilityTest(AbstractFalsificationAlgorithm):
     def __init__(
         self,
         cond_indep_test: str = "kcit_rbf",

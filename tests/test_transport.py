@@ -1,6 +1,6 @@
 import numpy as np
 
-from causal_falsify.transport import TransportabilityTest
+from causal_falsify.algorithms.transport import TransportabilityTest
 
 
 def make_fake_data(n_samples=200, n_covariates=3):

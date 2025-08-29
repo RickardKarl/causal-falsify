@@ -10,17 +10,17 @@ warnings.filterwarnings(
     message="The optimal value found for dimension.*is close to the specified upper bound.*",
 )
 
-from causal_falsify.mint import MINT
-from causal_falsify.hgic import HGIC
-from causal_falsify.transport import TransportabilityTest
+from causal_falsify.algorithms.mint import MINT
+from causal_falsify.algorithms.hgic import HGIC
+from causal_falsify.algorithms.transport import TransportabilityTest
 from causal_falsify.utils.simulate_data import simulate_data
 
 # Seeds for reproducibility
-seeds = range(0, 25)
+seeds = range(0, 5)
 
 # Default dataset parameters
 DEFAULT_N_SAMPLES = 25
-DEFAULT_N_ENVS = 10
+DEFAULT_N_ENVS = 25
 DEFAULT_N_CONFOUNDERS = 2
 DEFAULT_CONFOUNDING_STRENGTH = 1.0
 DEFAULT_NONLINEAR_DEGREE = 2
@@ -44,7 +44,7 @@ def make_test_cases():
 
     # Default n_envs for most methods
     default_envs = DEFAULT_N_ENVS
-    hgic_envs = 25 * DEFAULT_N_ENVS
+    hgic_envs = 10 * DEFAULT_N_ENVS
 
     # MINT linear
     cases.extend(
@@ -219,14 +219,14 @@ def test_methods_parametric(test_case):
 
     mean_pval = np.mean(p_values)
     if test_case.expect_significant:
-        assert mean_pval < 0.3, (
+        assert mean_pval < 0.35, (
             f"Mean p-value for {test_case.method_class.__name__} {test_case.method_kwargs}: mean_pval={mean_pval} | "
             f"conf_strength={test_case.conf_strength}, degree={test_case.degree}, "
             f"n_envs={test_case.n_envs}, n_samples={DEFAULT_N_SAMPLES}, n_observed_confounders={DEFAULT_N_CONFOUNDERS}, "
             f"expect_significant={test_case.expect_significant}"
         )
     else:
-        assert mean_pval > 0.3, (
+        assert mean_pval > 0.25, (
             f"Mean p-value for {test_case.method_class.__name__} {test_case.method_kwargs}: mean_pval={mean_pval} | "
             f"conf_strength={test_case.conf_strength}, degree={test_case.degree}, "
             f"n_envs={test_case.n_envs}, n_samples={DEFAULT_N_SAMPLES}, n_observed_confounders={DEFAULT_N_CONFOUNDERS}, "

@@ -3,7 +3,7 @@ from typing import List
 from abc import ABC, abstractmethod
 
 
-class FalsificationAlgorithm(ABC):
+class AbstractFalsificationAlgorithm(ABC):
     def __init__(self) -> None:
         """
         Base class for all falsification algorithms.
