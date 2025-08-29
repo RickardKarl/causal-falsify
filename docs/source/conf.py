@@ -3,7 +3,6 @@ import sys
 
 # -- Path setup ---------------------------------------------------------------
 sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath(".."))
 
 
 # -- Project information -----------------------------------------------------
@@ -34,3 +33,29 @@ html_theme_options = {
     "navigation_depth": 4,  # Show submodules
     "titles_only": False,
 }
+
+
+# -- Automatically run sphinx-apidoc at build time -------------------------------
+import subprocess
+
+
+def run_apidoc(app):
+    here = os.path.dirname(__file__)
+    package_dir = os.path.abspath(os.path.join(here, "..", "..", "causal_falsify"))
+    output_dir = os.path.join(here, "api")
+    # Clear and regenerate
+    subprocess.call(
+        [
+            "sphinx-apidoc",
+            "-o",
+            output_dir,
+            "--separate",
+            "--module-first",
+            package_dir,
+            "--force",
+        ]
+    )
+
+
+def setup(app):
+    app.connect("builder-inited", run_apidoc)
