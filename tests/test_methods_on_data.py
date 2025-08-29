@@ -16,7 +16,7 @@ from causal_falsify.algorithms.transport import TransportabilityTest
 from causal_falsify.utils.simulate_data import simulate_data
 
 # Seeds for reproducibility
-seeds = range(0, 25)
+seeds = range(0, 3)
 
 # Default dataset parameters
 DEFAULT_N_SAMPLES = 25

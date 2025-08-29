@@ -3,7 +3,8 @@ import sys
 
 # -- Path setup ---------------------------------------------------------------
 sys.path.insert(0, os.path.abspath(".."))
-master_doc = "index"
+sys.path.insert(0, os.path.abspath(".."))
+
 
 # -- Project information -----------------------------------------------------
 project = "causal-falsify"
