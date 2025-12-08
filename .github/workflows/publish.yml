@@ -1,18 +1,18 @@
-name: Build, Tag, and Publish to PyPI (PR-label controlled)
+name: Publish to PyPI on tagged merge to main
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*.*.*'
 
 jobs:
-  tag-build-publish:
+  build-and-publish:
+    name: Build and publish to PyPI
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write        # needed for tagging
-      id-token: write        # for PyPI
-      pull-requests: read    # to read PR labels
+      id-token: write  # required for trusted publishing to PyPI
+      contents: read   # needed for actions/checkout
 
     steps:
       - name: Checkout code
@@ -23,74 +23,10 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          pip install build gh jq
-
-      - name: Determine version bump from PR labels
-        id: version
-        run: |
-          # Find PR merged into main producing this commit
-          pr_number=$(gh pr list --base main --state merged --json number,mergeCommitOid | \
-            jq -r ".[] | select(.mergeCommitOid==\"$(git rev-parse HEAD)\") | .number")
-          
-          echo "PR number: $pr_number"
-
-          if [ -z "$pr_number" ]; then
-            echo "No PR found for this merge. Skipping PyPI publish."
-            echo "bump=none" >> $GITHUB_OUTPUT
-          else
-            labels=$(gh pr view $pr_number --json labels | jq -r '.labels[].name')
-            echo "PR labels: $labels"
-            if echo "$labels" | grep -q "release: major"; then
-              echo "bump=major" >> $GITHUB_OUTPUT
-            elif echo "$labels" | grep -q "release: minor"; then
-              echo "bump=minor" >> $GITHUB_OUTPUT
-            elif echo "$labels" | grep -q "release: patch"; then
-              echo "bump=patch" >> $GITHUB_OUTPUT
-            else
-              echo "No release label found. Skipping PyPI publish."
-              echo "bump=none" >> $GITHUB_OUTPUT
-            fi
-          fi
-
-      - name: Stop if no release label
-        if: steps.version.outputs.bump == 'none'
-        run: |
-          echo "No release label detected. Exiting workflow."
-          exit 0
-
-      - name: Determine next tag
-        id: next-tag
-        run: |
-          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Latest tag: $latest_tag"
-          IFS='.' read -r major minor patch <<< "${latest_tag#v}"
-
-          case "${{ steps.version.outputs.bump }}" in
-            major)
-              major=$((major + 1))
-              minor=0
-              patch=0
-              ;;
-            minor)
-              minor=$((minor + 1))
-              patch=0
-              ;;
-            patch)
-              patch=$((patch + 1))
-              ;;
-          esac
-
-          next_tag="v$major.$minor.$patch"
-          echo "Next tag: $next_tag"
-          echo "next_tag=$next_tag" >> $GITHUB_OUTPUT
-
-      - name: Create and push tag
-        run: |
-          git tag ${{ steps.next-tag.outputs.next_tag }}
-          git push origin ${{ steps.next-tag.outputs.next_tag }}
+          pip install build
 
       - name: Build distribution
         run: python -m build
