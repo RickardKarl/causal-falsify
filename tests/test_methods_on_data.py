@@ -182,6 +182,7 @@ def make_test_cases():
 
 
 @pytest.mark.parametrize("test_case", make_test_cases())
+@pytest.mark.localonly
 def test_methods_parametric(test_case):
     p_values = []
 

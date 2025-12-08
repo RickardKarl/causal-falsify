@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import List, Dict
+from functools import partial
 from jax import random, vmap, config
 import jax.numpy as jnp
 
@@ -10,8 +11,7 @@ from causal_falsify.algorithms.abstract import AbstractFalsificationAlgorithm
 from causal_falsify.utils.mint import (
     create_polynomial_representation,
     bootstrap_model_fitting_jax,
-    fit_outcome_model_jax,
-    fit_treatment_model_jax,
+    fit_model_jax,
     permutation_independence_test,
     bootstrapped_permutation_independence_test,
 )
@@ -23,6 +23,7 @@ class MINT(AbstractFalsificationAlgorithm):
         feature_representation: str = "linear",
         feature_representation_params: dict = {},
         binary_treatment: bool = False,
+        binary_outcome: bool = False,
         min_samples_per_env: int = 25,
         independence_test_args: dict = {},
         n_bootstraps: int = 1000,
@@ -43,7 +44,9 @@ class MINT(AbstractFalsificationAlgorithm):
         feature_representation_params : dict, optional
             Parameters for the feature representation.
         binary_treatment : bool, optional
-            Whether the treatment is binary (currently not implemented).
+            Whether the treatment is binary 0/1. Default is False, then assuming continuous treatment.
+        binary_outcome : bool, optional
+            Whether the outcome is binary 0/1. Default is False, then assuming continuous outcome.
         min_samples_per_env : int, optional
             Minimum number of samples required per environment.
         independence_test_args : dict, optional
@@ -54,6 +57,7 @@ class MINT(AbstractFalsificationAlgorithm):
         self.feature_representation = feature_representation
         self.feature_representation_params = feature_representation_params
         self.binary_treatment = binary_treatment
+        self.binary_outcome = binary_outcome
         self.min_samples_per_env = min_samples_per_env
         self.independence_test_args = independence_test_args
         self.n_bootstraps = n_bootstraps
@@ -103,6 +107,23 @@ class MINT(AbstractFalsificationAlgorithm):
         source = data[[source_var]].values  # shape (n_samples, 1)
         covariates = data[covariate_vars].values  # shape (n_samples, n_covariates)
 
+        # Validate if binary_treatment/binary_outcome is set to True
+        if self.binary_treatment and not np.isin(treatment, [0, 1]).all():
+            raise ValueError(
+                "binary_treatment is True but treatment contains values other than 0 and 1"
+            )
+
+        if self.binary_outcome and not np.isin(outcome, [0, 1]).all():
+            raise ValueError(
+                "binary_outcome is True but outcome contains values other than 0 and 1"
+            )
+        fit_treatment_model_func = partial(
+            fit_model_jax, binary_response=self.binary_treatment
+        )
+        fit_outcome_model_func = partial(
+            fit_model_jax, binary_response=self.binary_outcome
+        )
+
         n_environments = len(np.unique(source))
         coef_outcome_mech, coef_treatment_mech = [], []
         resampled_coef_outcome_mech, resampled_coef_treatment_mech = [], []
@@ -138,11 +159,12 @@ class MINT(AbstractFalsificationAlgorithm):
                 )
             )
 
-            params_outcome_mech, outcome_model_mse = fit_outcome_model_jax(
-                tf_outcome_treatment_source, outcome_source
+            params_outcome_mech, outcome_model_mse = fit_outcome_model_func(
+                X=tf_outcome_treatment_source, Y=outcome_source
             )
-            params_treatment_mech, treatment_model_mse = fit_treatment_model_jax(
-                tf_outcome_source, treatment_source
+            params_treatment_mech, treatment_model_mse = fit_treatment_model_func(
+                X=tf_outcome_source,
+                Y=treatment_source,
             )
 
             coef_outcome_mech.append(params_outcome_mech)
@@ -156,12 +178,14 @@ class MINT(AbstractFalsificationAlgorithm):
                 keys = random.split(random.PRNGKey(0), self.n_bootstraps)
                 resampled_params = vmap(
                     bootstrap_model_fitting_jax,
-                    in_axes=(None, None, None, None, 0),
+                    in_axes=(None, None, None, None, None, None, 0),
                 )(
                     outcome_source,
                     treatment_source,
                     tf_outcome_source,
                     tf_outcome_treatment_source,
+                    fit_outcome_model_func,
+                    fit_treatment_model_func,
                     keys,
                 )
                 resampled_coef_outcome_mech.append(resampled_params[0])

@@ -57,7 +57,7 @@ confounded_data = simulate_data(
 )
 
 # Run the MINT algorithm
-mint_algorithm = MINT(binary_treatment=False)
+mint_algorithm = MINT(binary_treatment=False, binary_outcome=False)
 p_value = mint_algorithm.test(
     confounded_data,
     covariate_vars=["X_0", "X_1"],

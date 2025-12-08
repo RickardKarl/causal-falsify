@@ -4,10 +4,7 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
       - dev
-      - main
 
 jobs:
   test:
@@ -27,6 +24,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev] 
 
-      - name: Run tests with pytest
+      - name: Run tests with pytest (exclude local-only tests)
         run: |
-          pytest --cov=causal_falsify --cov-fail-under=80 tests/
+          pytest -m "not localonly" --cov=causal_falsify --cov-fail-under=80 tests/

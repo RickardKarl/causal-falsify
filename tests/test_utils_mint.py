@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import jax.numpy as jnp
 from jax import random
+from functools import partial
 
 from causal_falsify.utils.mint import (
     create_polynomial_representation,
@@ -12,8 +13,7 @@ from causal_falsify.utils.mint import (
     fit_logistic_regression,
     fit_linear_regression,
     cross_val_mse,
-    fit_outcome_model_jax,
-    fit_treatment_model_jax,
+    fit_model_jax,
     bootstrap_model_fitting_jax,
     resample_until_enough_unique,
 )
@@ -87,20 +87,31 @@ def test_bootstrapped_permutation_independence_test_basic():
 
 def test_fit_logistic_regression_basic():
     np.random.seed(0)
-    X = jnp.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-    T = jnp.array([1, -1, 1, -1])
-    params = fit_logistic_regression(X, T, alpha=0.01)
+    n_samples = 500
+    X = np.random.normal(size=(n_samples, 1))
+    true_params = np.array([2.0])
+    logits = X @ true_params
+    Y = np.random.binomial(n=1, p=1 / (1 + np.exp(-logits)))
+
+    params = fit_logistic_regression(X=X, Y=Y, alpha=0.00)
     assert params.shape == (X.shape[1],)
     assert all(isinstance(float(val), float) for val in params)
+    # Check if fitted params are close to true params
+    assert jnp.abs(params[0] - true_params[0]) < 0.1
 
 
 def test_fit_linear_regression_basic():
     np.random.seed(0)
-    X = jnp.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-    Y = jnp.array([1, 2, 3, 4])
+    n_samples = 100
+    X = np.random.normal(size=(n_samples, 1))
+    true_params = np.array([3.0])
+    Y = X @ true_params + np.random.normal(size=(n_samples,)) * 0.1
+
     params = fit_linear_regression(X, Y)
     assert params.shape == (X.shape[1],)
     assert all(isinstance(float(val), float) for val in params)
+    # Check if fitted params are close to true params
+    assert jnp.abs(params[0] - true_params[0]) < 0.1
 
 
 def test_cross_val_mse_basic():
@@ -117,13 +128,25 @@ def test_fit_outcome_and_treatment_model_jax():
     T = jnp.array(np.random.randn(10))
     Y = jnp.array(np.random.randn(10))
 
-    params_outcome, mse_outcome = fit_outcome_model_jax(X, Y)
-    params_treatment, mse_treatment = fit_treatment_model_jax(X, T)
+    params_outcome, mse_outcome = fit_model_jax(X=X, Y=Y, binary_response=False)
+    params_treatment, mse_treatment = fit_model_jax(X=X, Y=T, binary_response=False)
 
     assert params_outcome.shape == (X.shape[1],)
     assert mse_outcome >= 0
     assert params_treatment.shape == (X.shape[1],)
     assert mse_treatment >= 0
+
+
+def test_binary_response_input():
+    np.random.seed(0)
+    X = jnp.array(np.random.randn(10, 3))
+    Y = jnp.array(np.random.randint(0, 2, 10))
+
+    params_binary, mse_binary = fit_model_jax(X=X, Y=Y, binary_response=True)
+    params_non_binary, mse_non_binary = fit_model_jax(X=X, Y=Y, binary_response=False)
+
+    assert not jnp.allclose(params_binary, params_non_binary, atol=0.1)
+    assert abs(mse_binary - mse_non_binary) > 0.1
 
 
 def test_resample_until_enough_unique():
@@ -140,8 +163,9 @@ def test_bootstrap_model_fitting_jax_basic():
     T = jnp.array(np.random.randn(15))
     tf_X = jnp.array(np.random.randn(15, 3))
     tf_XT = jnp.array(np.random.randn(15, 3))
+    fit_regression = partial(fit_model_jax, binary_response=False)
     params_outcome, params_treatment = bootstrap_model_fitting_jax(
-        Y, T, tf_X, tf_XT, key
+        Y, T, tf_X, tf_XT, fit_regression, fit_regression, key
     )
     assert params_outcome.shape == (tf_XT.shape[1],)
     assert params_treatment.shape == (tf_X.shape[1],)

@@ -1,9 +1,9 @@
-name: Publish to PyPI on merge to main
+name: Publish to PyPI on tagged merge to main
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
 
 jobs:
   build-and-publish:
