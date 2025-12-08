@@ -45,7 +45,7 @@ Below is an example using the MINT algorithm. When calling ``MINT().test(...)``,
    )
 
    # Initialize falsification algorithm and run it on the data
-   mint_algorithm = MINT(binary_treatment=False)
+   mint_algorithm = MINT(binary_treatment=False, binary_outcome=True)
    p_value = mint_algorithm.test(
        confounded_data,
        covariate_vars=["X_0", "X_1"],
