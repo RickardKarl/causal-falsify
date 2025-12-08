@@ -1,8 +1,10 @@
 import numpy as np
 import jax.numpy as jnp
+from functools import partial
 from jax.scipy.linalg import solve
 from jax import grad, jit, random, lax
 from sklearn.preprocessing import PolynomialFeatures
+import warnings
 
 
 def create_polynomial_representation(
@@ -273,49 +275,73 @@ def validate_matrix(matrix: np.ndarray):
 
 
 def fit_logistic_regression(
-    X: jnp.ndarray, T: jnp.ndarray, alpha: float = 1e-3
+    X: jnp.ndarray, Y: jnp.ndarray, alpha: float = 0
 ) -> jnp.ndarray:
     """
-    Fit a logistic regression model using JAX and gradient descent with ridge regularization.
+    Fit a logistic regression model using JAX and gradient descent (binary cross-entropy).
+
+    Implementation notes
+    --------------------
+    - Uses a numerically-stable logits-based binary cross-entropy loss.
+    - Inputs `X` and `Y` are converted to JAX arrays and cast to a float dtype
+      inside the function (`float32` by default).
+    - Training is executed inside a JIT-compiled loop using `jax.lax.fori_loop` for
+      efficiency. The function itself is decorated with `@jit`.
+    - L2 regularization is applied as `alpha * sum(params**2)`. Passing `alpha=0`
+      results in no regularization.
 
     Parameters
     ----------
     X : array-like, shape (n_samples, n_features)
-        Transformed feature matrix, including intercept term if desired.
-    T : array-like, shape (n_samples,)
-        Target variable. Must be binary (typically 0/1 or -1/1).
-    alpha : float, optional (default=1e-3)
-        Regularization strength for ridge (L2) penalty. Set to 0 for no regularization.
+        Design matrix (can include an intercept column).
+    Y : array-like, shape (n_samples,)
+        Binary target values in {0, 1} (the implementation expects 0/1 labels).
+    alpha : float, optional (default=0)
+        Regularization strength for ridge (L2) penalty. May be a traced JAX scalar
+        when called from JITted code; the implementation avoids Python boolean checks
+        on `alpha`.
 
     Returns
     -------
     params : jax.numpy.ndarray, shape (n_features,)
-        Fitted logistic regression coefficients.
+        Fitted logistic regression coefficients (dtype `float32`).
+
+    Notes
+    -----
+    - The number of gradient-descent iterations and learning rate are currently
+      hard-coded (1000 iterations, learning rate 0.1). If you need tunable training
+      behaviour, consider adding explicit arguments or switching to an optimizer
+      library such as `optax`.
     """
 
-    # Define logistic regression loss with optional regularization
-    def logistic_loss(params, X, T, alpha):
-        logits = X @ params
-        loss = jnp.mean(jnp.log(1 + jnp.exp(-T * logits)))  # Logistic loss
-        if alpha > 0:
-            loss += alpha * jnp.sum(params**2)  # Regularization term (Ridge)
+    # Ensure inputs are JAX arrays with float dtype
+    X = jnp.asarray(X)
+    Y = jnp.asarray(Y).astype(jnp.float32)
+
+    # Define binary cross-entropy (BCE) loss from logits (numerically stable)
+    # Uses formulation: BCE(logits, y) = max(l,0) - l*y + log(1 + exp(-abs(l)))
+    def logistic_loss(parms, x, y, alp):
+        logits = x @ parms
+        # stable per-example loss
+        per_example = (
+            jnp.maximum(logits, 0) - logits * y + jnp.log1p(jnp.exp(-jnp.abs(logits)))
+        )
+        loss = jnp.mean(per_example)
+        # Always add regularization term (alpha can be 0)
+        loss = loss + alp * jnp.sum(parms**2)
         return loss
 
     # Initial guess for parameters (weights)
-    init_params = jnp.zeros(X.shape[1])
+    init_params = jnp.zeros(X.shape[1], dtype=jnp.float32)
 
     # Compute the gradient of the loss function
-    loss_grad = grad(logistic_loss)
+    # Use a traced loop via lax.fori_loop for efficient JIT compilation
+    def body(i, parms):
+        grads = grad(logistic_loss)(parms, X, Y, alpha)
+        return parms - 0.1 * grads
 
-    # Minimize the loss using gradient descent
-    def update(params, X, T, alpha, learning_rate=0.1):
-        grads = loss_grad(params, X, T, alpha)
-        return params - learning_rate * grads
-
-    # Fit the model by iterating updates
-    params = init_params
-    for _ in range(1000):  # Set max iterations for gradient descent
-        params = update(params, X, T, alpha)
+    num_iters = 1000
+    params = lax.fori_loop(0, num_iters, body, init_params)
 
     return params
 
@@ -392,120 +418,110 @@ def cross_val_mse(X: jnp.ndarray, Y: jnp.ndarray, model_fn, num_folds: int) -> f
     return jnp.mean(jnp.array(mse_list))
 
 
-def fit_outcome_model_jax(
-    tf_XT: jnp.ndarray, Y: jnp.ndarray
+def fit_model_jax(
+    X: jnp.ndarray,
+    Y: jnp.ndarray,
+    binary_response: bool = False,
 ) -> tuple[jnp.ndarray, float]:
     """
-    Fits a linear regression outcome model using JAX and evaluates its performance via cross-validation.
+    Fit a nuisance model (linear or logistic) and evaluate its performance via cross-validation.
+
+    This function selects between `fit_linear_regression` and `fit_logistic_regression`
+    based on the `binary_response` flag and returns the fitted parameters along with
+    a cross-validated mean-squared error diagnostic.
+
+    Important
+    ---------
+    - `binary_response` is treated as a plain Python boolean here. When calling
+      `fit_model_jax` from JIT-compiled code, prefer passing function objects
+      directly to the caller (see `bootstrap_model_fitting_jax`) to avoid tracing
+      boolean values.
 
     Parameters
     ----------
-    tf_XT : jax.numpy.ndarray
-        The design matrix of shape (n_samples, n_features), where each row represents a sample and each column a feature.
+    X : jax.numpy.ndarray
+        Design matrix of shape `(n_samples, n_features)`.
     Y : jax.numpy.ndarray
-        The outcome vector of shape (n_samples,), containing the target values.
+        Target vector of shape `(n_samples,)`.
+    binary_response : bool, optional
+        If True, fit a logistic regression model; otherwise fit a linear model.
 
     Returns
     -------
     params_outcome : jax.numpy.ndarray
-        The fitted model parameters of shape (n_features,).
+        The fitted model parameters (shape `(n_features,)`).
     model_mse : float
-        The mean squared error (MSE) of the model estimated via 5-fold cross-validation.
-
-    Raises
-    ------
-    AssertionError
-        If the number of samples is not greater than the number of features.
+        Cross-validated mean squared error for diagnostic purposes.
     """
 
-    assert tf_XT.shape[0] > tf_XT.shape[1], "need more samples than features"
+    assert X.shape[0] > X.shape[1], "need more samples than features"
 
     # Fit the outcome model using model_fn
-    params_outcome = fit_linear_regression(tf_XT, Y)
+    if binary_response:
+        model_fn = fit_logistic_regression
+    else:
+        model_fn = fit_linear_regression
+
+    params_outcome = model_fn(X=X, Y=Y)
 
     # Perform cross-validation for model diagnostic using the same model_fn
-    model_mse = cross_val_mse(tf_XT, Y, fit_linear_regression, num_folds=5)
+    try:
+        model_mse = cross_val_mse(X, Y, model_fn, num_folds=3)
+    except Exception as e:
+        warnings.warn(f"Cross-validation failed: {str(e)}")
+        model_mse = np.nan
 
     return params_outcome.T, model_mse
 
 
-def fit_treatment_model_jax(
-    tf_X: jnp.ndarray, T: jnp.ndarray
-) -> tuple[jnp.ndarray, float]:
-    """
-    Fits a linear regression treatment model using JAX and evaluates its performance via cross-validation.
-
-    Parameters
-    ----------
-    tf_X : jnp.ndarray
-        The feature matrix of shape (n_samples, n_features).
-    T : jnp.ndarray
-        The treatment assignment vector of shape (n_samples,).
-
-    Returns
-    -------
-    params_treatment : jnp.ndarray
-        The fitted model parameters, transposed.
-    model_mse : float
-        The mean squared error from cross-validation.
-
-    Raises
-    ------
-    AssertionError
-        If the number of samples is not greater than the number of features.
-
-    Notes
-    -----
-    Uses `fit_linear_regression` for model fitting and `cross_val_mse` for cross-validation.
-    """
-
-    assert tf_X.shape[0] > tf_X.shape[1], "need more samples than features"
-
-    # Fit the model and get parameters
-    params_treatment = fit_linear_regression(tf_X, T)
-
-    # Perform cross-validation for model diagnostic using the same model_fn
-    model_mse = cross_val_mse(tf_X, T, fit_linear_regression, num_folds=5)
-
-    return params_treatment.T, model_mse
-
-
-@jit
+@partial(jit, static_argnames=["outcome_model_fn", "treatment_model_fn"])
 def bootstrap_model_fitting_jax(
-    Y: jnp.ndarray, T: jnp.ndarray, tf_X: jnp.ndarray, tf_XT: jnp.ndarray, key
+    Y: jnp.ndarray,
+    T: jnp.ndarray,
+    tf_X: jnp.ndarray,
+    tf_XT: jnp.ndarray,
+    outcome_model_fn,
+    treatment_model_fn,
+    key,
 ):
     """
-    Fits outcome and treatment models on a bootstrap resample of the data using JAX.
+    Fit outcome and treatment models on a bootstrap resample of the data.
 
-    This function performs bootstrap resampling of the input data arrays using JAX's random
-    number generation for reproducibility. It ensures that the resampled data contains enough
-    unique samples for model estimation. The function then fits outcome and treatment models
-    on the resampled data and returns the fitted parameters.
+    This function performs bootstrap resampling (with replacement) using JAX random
+    primitives and then fits the provided model functions on the resampled data.
 
     Parameters
     ----------
     Y : jnp.ndarray
-        Outcome variable array of shape (n_samples,).
+        Outcome array of shape `(n_samples,)`.
     T : jnp.ndarray
-        Treatment variable array of shape (n_samples,).
+        Treatment array of shape `(n_samples,)`.
     tf_X : jnp.ndarray
-        Transformed covariate array for the treatment model of shape (n_samples, n_features).
+        Transformed covariate matrix for the treatment model of shape `(n_samples, n_features)`.
     tf_XT : jnp.ndarray
-        Transformed covariate array for the outcome model of shape (n_samples, n_features_outcome).
+        Transformed covariate matrix for the outcome model of shape `(n_samples, n_features_outcome)`.
+    outcome_model_fn : callable
+        Callable that fits an outcome model. Signature should be `fn(X, Y)` and return
+        `(params, mse)` where `params` is an array of fitted coefficients.
+    treatment_model_fn : callable
+        Callable that fits a treatment model. Same interface as `outcome_model_fn`.
     key : jax.random.PRNGKey
-        JAX random key for reproducibility.
+        JAX PRNGKey used for resampling.
 
     Returns
     -------
-    resampled_params_outcome : Any
-        Fitted parameters of the outcome model on the resampled data.
-    resampled_params_treatment : Any
-        Fitted parameters of the treatment model on the resampled data.
+    resampled_params_outcome, resampled_params_treatment : tuple
+        The fitted parameters for outcome and treatment models on the resampled data.
 
-    Raises
-    ------
-    AssertionError
-        If the number of samples is not sufficient for model estimation.
+        Notes
+        -----
+        - The function expects `outcome_model_fn` and `treatment_model_fn` to be plain
+            Python callables (they can be `functools.partial` wrappers). The function
+            is JIT-compiled here, and the two callable arguments are treated as static
+            via `static_argnums` so they must be passed as Python callables (not JAX
+            tracers / arrays).
+        - This function uses JAX operations for resampling and is JIT-compiled with
+            the model callables static to avoid tracing Python callables.
     """
 
     # Resample indices using JAX's random module for reproducibility
@@ -526,35 +542,39 @@ def bootstrap_model_fitting_jax(
     resampled_tf_XT = tf_XT[resampled_indices]
 
     # Fit outcome and treatment models on resampled data
-    resampled_params_outcome, _ = fit_outcome_model_jax(resampled_tf_XT, resampled_Y)
-    resampled_params_treatment, _ = fit_treatment_model_jax(resampled_tf_X, resampled_T)
+    resampled_params_outcome, _ = outcome_model_fn(resampled_tf_XT, resampled_Y)
+    resampled_params_treatment, _ = treatment_model_fn(resampled_tf_X, resampled_T)
 
     return resampled_params_outcome, resampled_params_treatment
 
 
 def resample_until_enough_unique(subkey, n_resamples, min_sample_size):
     """
-    Repeatedly resamples indices with replacement until at least `min_sample_size` unique indices are obtained.
+    Repeatedly resample indices (with replacement) until the sample contains at least
+    `min_sample_size` unique indices.
 
     Parameters
     ----------
     subkey : jax.random.PRNGKey
-        The random key used for generating random numbers.
+        PRNG key for JAX random operations.
     n_resamples : int
-        The number of indices to sample in each resampling iteration.
+        Number of indices to sample in each iteration (sample size).
     min_sample_size : int
-        The minimum number of unique indices required in the resampled set.
+        Minimum required number of unique indices in the resampled set.
 
     Returns
     -------
     resampled_indices : jax.numpy.ndarray
-        An array of shape `(n_resamples,)` containing the resampled indices, guaranteed to have at least
-        `min_sample_size` unique values.
+        Integer array of shape `(n_resamples,)` containing resampled indices. The
+        returned array is guaranteed to contain at least `min_sample_size` distinct values
+        when the function returns.
 
     Notes
     -----
-    This function uses a while loop to repeatedly resample indices until the number of unique indices
-    in the sample meets or exceeds `min_sample_size`. The sampling is performed with replacement.
+    - The function uses `jax.lax.while_loop` internally to remain compatible with JIT
+      tracing. The condition and body are expressed with JAX primitives.
+    - If `min_sample_size > n_resamples` the loop cannot succeed; the caller should
+      ensure `min_sample_size <= n_resamples` to avoid an infinite loop.
     """
     # Initial resampling
     resampled_indices = random.choice(
@@ -569,7 +589,8 @@ def resample_until_enough_unique(subkey, n_resamples, min_sample_size):
     def condition_fn(state):
         _, resampled_indices = state
         # Check if unique indices are below the threshold
-        return count_unique(resampled_indices) < min_sample_size
+        # Use jnp.asarray() to ensure the result is a JAX array that can be used in lax.while_loop
+        return jnp.asarray(count_unique(resampled_indices) < min_sample_size)
 
     # Define body function for while loop
     def body_fn(state):
