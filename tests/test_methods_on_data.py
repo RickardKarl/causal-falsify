@@ -16,7 +16,7 @@ from causal_falsify.algorithms.transport import TransportabilityTest
 from causal_falsify.utils.simulate_data import simulate_data
 
 # Seeds for reproducibility
-seeds = range(0, 5)
+seeds = range(0, 10)
 
 # Default dataset parameters
 DEFAULT_N_SAMPLES = 25
@@ -182,7 +182,41 @@ def make_test_cases():
 
 
 @pytest.mark.parametrize("test_case", make_test_cases())
-def test_methods_parametric(test_case):
+def test_methods_run_with_no_error(test_case):
+
+    np.random.seed(seeds[0])
+    data = simulate_data(
+        n_samples=DEFAULT_N_SAMPLES,
+        degree=test_case.degree,
+        conf_strength=test_case.conf_strength,
+        n_envs=test_case.n_envs,
+        n_observed_confounders=DEFAULT_N_CONFOUNDERS,
+    )
+
+    algorithm = test_case.method_class(**test_case.method_kwargs)
+    pval = algorithm.test(
+        data,
+        covariate_vars=["X_0", "X_1"],
+        treatment_var="A",
+        outcome_var="Y",
+        source_var="S",
+    )
+
+    # Validate p-value
+    assert (
+        pval is not None
+    ), f"{test_case.method_class.__name__} p-value is None, args={test_case.method_kwargs}"
+    assert isinstance(
+        pval, (float, np.floating)
+    ), f"{test_case.method_class.__name__} p-value type invalid, args={test_case.method_kwargs}"
+    assert (
+        0 <= pval <= 1
+    ), f"{test_case.method_class.__name__} p-value out of range, args={test_case.method_kwargs}"
+
+
+@pytest.mark.parametrize("test_case", make_test_cases())
+@pytest.mark.localonly
+def test_methods_valid_output(test_case):
     p_values = []
 
     for seed in seeds:
@@ -219,7 +253,7 @@ def test_methods_parametric(test_case):
 
     mean_pval = np.mean(p_values)
     if test_case.expect_significant:
-        assert mean_pval < 0.35, (
+        assert mean_pval < 0.25, (
             f"Mean p-value for {test_case.method_class.__name__} {test_case.method_kwargs}: mean_pval={mean_pval} | "
             f"conf_strength={test_case.conf_strength}, degree={test_case.degree}, "
             f"n_envs={test_case.n_envs}, n_samples={DEFAULT_N_SAMPLES}, n_observed_confounders={DEFAULT_N_CONFOUNDERS}, "
