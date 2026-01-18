@@ -53,6 +53,10 @@ def create_polynomial_representation(
     else:
         n_features = X.shape[1]
 
+        # Handle empty covariate case: return empty array with same number of rows
+        if n_features == 0:
+            return np.empty((X.shape[0], 0))
+
         # Create an empty list to store polynomial features
         poly_features = []
 
@@ -85,8 +89,10 @@ def compute_offdiag_block_frobnorm(data_x, data_y) -> float:
     ----------
     data_x : np.ndarray
         A 2D array of shape (n_samples, n_features_x) representing the first dataset.
+        Can also be 1D with shape (n_samples,), which will be reshaped to (n_samples, 1).
     data_y : np.ndarray
         A 2D array of shape (n_samples, n_features_y) representing the second dataset.
+        Can also be 1D with shape (n_samples,), which will be reshaped to (n_samples, 1).
 
     Returns
     -------
@@ -105,6 +111,12 @@ def compute_offdiag_block_frobnorm(data_x, data_y) -> float:
     The off-diagonal block refers to the submatrix of the covariance matrix that captures
     the covariances between the features of `data_x` and `data_y`.
     """
+
+    # Ensure data is 2D
+    if data_x.ndim == 1:
+        data_x = data_x.reshape(-1, 1)
+    if data_y.ndim == 1:
+        data_y = data_y.reshape(-1, 1)
 
     dim_x, dim_y = data_x.shape[1], data_y.shape[1]
     assert data_x.shape[0] == data_y.shape[0], "first dimension be the same"
@@ -471,7 +483,13 @@ def fit_model_jax(
         warnings.warn(f"Cross-validation failed: {str(e)}")
         model_mse = np.nan
 
-    return params_outcome.T, model_mse
+    # Ensure params are always 2D: reshape (n_features,) to (1, n_features) for single output
+    # or keep (n_features, n_outputs) for multiple outputs
+    params_transposed = params_outcome.T
+    if params_transposed.ndim == 1:
+        params_transposed = params_transposed.reshape(1, -1)
+
+    return params_transposed, model_mse
 
 
 @partial(jit, static_argnames=["outcome_model_fn", "treatment_model_fn"])
