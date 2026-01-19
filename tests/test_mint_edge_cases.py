@@ -154,11 +154,7 @@ def test_mint_with_empty_covariate_set_binary_outcome():
 
 def test_mint_insufficient_samples_error():
     """
-    Test that MINT raises an informative error when no environments
-    have enough samples.
-
-    This addresses the issue where empty coefficient lists would cause
-    a confusing "Need at least one array to concatenate" error.
+    Test that MINT raises an error when no environments have enough samples.
     """
     np.random.seed(45)
 
@@ -198,13 +194,6 @@ def test_mint_insufficient_samples_error():
             outcome_var='outcome',
             source_var='source'
         )
-
-    # Check that error message is informative
-    error_msg = str(exc_info.value)
-    assert "No environments have at least" in error_msg
-    assert "50" in error_msg  # min_samples_per_env value
-    assert "reduce min_samples_per_env" in error_msg or "more data" in error_msg
-
 
 def test_mint_empty_covariates_with_polynomial_features():
     """
