@@ -196,7 +196,7 @@ class MINT(AbstractFalsificationAlgorithm):
                 resampled_coef_treatment_mech.append(resampled_params[1])
 
         # Validate that at least one environment has enough samples
-        if len(coef_outcome_mech) == 0:
+        if len(coef_outcome_mech) == 0 or len(coef_treatment_mech) == 0:
             raise ValueError(
                 f"No environments have at least {self.min_samples_per_env} samples. "
                 f"Found {len(np.unique(source))} environment(s) but all were skipped. "
