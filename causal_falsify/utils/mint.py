@@ -483,13 +483,10 @@ def fit_model_jax(
         warnings.warn(f"Cross-validation failed: {str(e)}")
         model_mse = np.nan
 
-    # Ensure params are always 2D: reshape (n_features,) to (1, n_features) for single output
-    # or keep (n_features, n_outputs) for multiple outputs
-    params_transposed = params_outcome.T
-    if params_transposed.ndim == 1:
-        params_transposed = params_transposed.reshape(1, -1)
-
-    return params_transposed, model_mse
+    # Ensure params always have shape (n_features,)
+    params_outcome = jnp.asarray(params_outcome).reshape(-1)
+    
+    return params_outcome, model_mse
 
 
 @partial(jit, static_argnames=["outcome_model_fn", "treatment_model_fn"])
