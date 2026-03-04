@@ -152,12 +152,16 @@ class MINT(AbstractFalsificationAlgorithm):
             def add_intercept(term):
                 return jnp.hstack([term, jnp.ones((term.shape[0], 1))])
 
-            tf_outcome_source = add_intercept(phi_outcome(covariates_source))
-            tf_outcome_treatment_source = add_intercept(
-                phi_outcome_treatment(
-                    jnp.concatenate([covariates_source, treatment_source], axis=1)
-                )
+            # Handle empty covariate case: when no covariates, phi returns empty array
+            # Apply feature transformation to covariates (may be empty)
+            tf_covariates_source = phi_outcome(covariates_source)
+            tf_covariates_treatment_source = phi_outcome_treatment(
+                jnp.concatenate([covariates_source, treatment_source], axis=1)
             )
+
+            # Add intercept to transformed features
+            tf_outcome_source = add_intercept(tf_covariates_source)
+            tf_outcome_treatment_source = add_intercept(tf_covariates_treatment_source)
 
             params_outcome_mech, outcome_model_mse = fit_outcome_model_func(
                 X=tf_outcome_treatment_source, Y=outcome_source
@@ -191,15 +195,23 @@ class MINT(AbstractFalsificationAlgorithm):
                 resampled_coef_outcome_mech.append(resampled_params[0])
                 resampled_coef_treatment_mech.append(resampled_params[1])
 
+        # Validate that at least one environment has enough samples
+        if len(coef_outcome_mech) == 0 or len(coef_treatment_mech) == 0:
+            raise ValueError(
+                f"No environments have at least {self.min_samples_per_env} samples. "
+                f"Found {len(np.unique(source))} environment(s) but all were skipped. "
+                f"Either reduce min_samples_per_env or provide more data per environment."
+            )
+
         coef_outcome_mech = np.array(jnp.vstack(coef_outcome_mech))
         coef_treatment_mech = np.array(jnp.vstack(coef_treatment_mech))
 
         if self.n_bootstraps:
             resampled_coef_outcome_mech = np.array(
-                jnp.hstack(resampled_coef_outcome_mech)
+                jnp.stack(resampled_coef_outcome_mech, axis=1)
             )
             resampled_coef_treatment_mech = np.array(
-                jnp.hstack(resampled_coef_treatment_mech)
+                jnp.stack(resampled_coef_treatment_mech, axis=1)
             )
             pval = self.run_bootstrapped_independence_test(
                 coef_outcome_mech,
