@@ -208,10 +208,10 @@ class MINT(AbstractFalsificationAlgorithm):
 
         if self.n_bootstraps:
             resampled_coef_outcome_mech = np.array(
-                jnp.hstack(resampled_coef_outcome_mech)
+                jnp.stack(resampled_coef_outcome_mech, axis=1)
             )
             resampled_coef_treatment_mech = np.array(
-                jnp.hstack(resampled_coef_treatment_mech)
+                jnp.stack(resampled_coef_treatment_mech, axis=1)
             )
             pval = self.run_bootstrapped_independence_test(
                 coef_outcome_mech,
